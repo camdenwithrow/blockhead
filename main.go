@@ -82,15 +82,17 @@ func editConfigFile() error {
 }
 
 func runAsAdmin(args []string) error {
-    cmdPath, err := os.Executable()
-    if err != nil {
-        return fmt.Errorf("failed to get executable path: %v", err)
-    }
+	cmdPath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("failed to get executable path: %v", err)
+	}
 
-    cmd := fmt.Sprintf(`"%s" %s`, cmdPath, strings.Join(args, " "))
-    osascript := fmt.Sprintf(`do shell script "%s" with administrator privileges`, cmd)
-    _, err = exec.Command("osascript", "-e", osascript).Output()
-    return err
+	cmd := fmt.Sprintf("%s %s", cmdPath, strings.Join(args, " "))
+	fmt.Println(cmd)
+	osascript := fmt.Sprintf(`do shell script "%s" with administrator privileges`, cmd)
+
+	_, err = exec.Command("osascript", "-e", osascript).Output()
+	return err
 }
 
 func blockWebsites(websitesToBlock []string) error {
