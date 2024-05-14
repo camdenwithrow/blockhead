@@ -87,12 +87,14 @@ func runAsAdmin(args []string) error {
 		return fmt.Errorf("failed to get executable path: %v", err)
 	}
 
-	cmd := fmt.Sprintf("%s %s", cmdPath, strings.Join(args, " "))
-	fmt.Println(cmd)
-	osascript := fmt.Sprintf(`do shell script "%s" with administrator privileges`, cmd)
+	script := fmt.Sprintf("%s %s", cmdPath, strings.Join(args, " "))
+	osascript := fmt.Sprintf(`do shell script "%s" with administrator privileges`, script)
 
-	_, err = exec.Command("osascript", "-e", osascript).Output()
-	return err
+	cmd := exec.Command("osascript", "-e", osascript)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	return cmd.Run()
 }
 
 func blockWebsites(websitesToBlock []string) error {
@@ -112,43 +114,43 @@ func blockWebsites(websitesToBlock []string) error {
 }
 
 func unblockWebsites(websitesToBlock []string) error {
-    file, err := os.Open(hostsFilePath)
-    if err != nil {
-        return fmt.Errorf("failed to open /etc/hosts: %v", err)
-    }
-    defer file.Close()
+	file, err := os.Open(hostsFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to open /etc/hosts: %v", err)
+	}
+	defer file.Close()
 
-    var fileContent strings.Builder
-    scanner := bufio.NewScanner(file)
-    for scanner.Scan() {
-        line := scanner.Text()
-        skipLine := false
-        for _, website := range websitesToBlock {
-            if strings.Contains(line, website) {
-                skipLine = true
-                break
-            }
-        }
-        if !skipLine {
-            fileContent.WriteString(line + "\n")
-        }
-    }
+	var fileContent strings.Builder
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		skipLine := false
+		for _, website := range websitesToBlock {
+			if strings.Contains(line, website) {
+				skipLine = true
+				break
+			}
+		}
+		if !skipLine {
+			fileContent.WriteString(line + "\n")
+		}
+	}
 
-    if err := scanner.Err(); err != nil {
-        return fmt.Errorf("error reading /etc/hosts: %v", err)
-    }
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("error reading /etc/hosts: %v", err)
+	}
 
-    file, err = os.OpenFile(hostsFilePath, os.O_TRUNC|os.O_WRONLY, 0644)
-    if err != nil {
-        return fmt.Errorf("failed to open /etc/hosts: %v", err)
-    }
-    defer file.Close()
+	file, err = os.OpenFile(hostsFilePath, os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open /etc/hosts: %v", err)
+	}
+	defer file.Close()
 
-    _, err = file.WriteString(fileContent.String())
-    if err != nil {
-        return fmt.Errorf("failed to write to /etc/hosts: %v", err)
-    }
-    return nil
+	_, err = file.WriteString(fileContent.String())
+	if err != nil {
+		return fmt.Errorf("failed to write to /etc/hosts: %v", err)
+	}
+	return nil
 }
 
 func main() {
