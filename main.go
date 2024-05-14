@@ -105,7 +105,7 @@ func blockWebsites(websitesToBlock []string) error {
 	defer file.Close()
 
 	for _, website := range websitesToBlock {
-		_, err := file.WriteString("127.0.0.1 " + website + "\n")
+		_, err := file.WriteString("127.0.0.1	" + website + "\n")
 		if err != nil {
 			return fmt.Errorf("failed to write to /etc/hosts: %v", err)
 		}
