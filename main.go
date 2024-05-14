@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -19,6 +21,33 @@ func getConfigFilePath() (string, error) {
 		return "", fmt.Errorf("failed to get user home directory: %v", err)
 	}
 	return filepath.Join(homeDir, ".config", configName, configFileName), nil
+}
+
+func readWebsitesFromConfig() ([]string, error) {
+	configFilePath, err := getConfigFilePath()
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.Open(configFilePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var websites []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		website := strings.TrimSpace(scanner.Text())
+		if website != "" {
+			websites = append(websites, website)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return websites, nil
 }
 
 func editConfigFile() error {
@@ -53,10 +82,7 @@ func editConfigFile() error {
 }
 
 func blockWebsites(websitesToBlock []string) error {
-	// FOR DEV
-	devHostsFilePath := "./hosts.txt"
-	file, err := os.OpenFile(devHostsFilePath, os.O_APPEND|os.O_WRONLY, 0644)
-	// file, err := os.OpenFile(hostsFilePath, os.O_APPEND|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(hostsFilePath, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to open /etc/hosts: %v", err)
 	}
@@ -87,11 +113,10 @@ func main() {
 		return
 	}
 
-	if action == "dev:block" {
-		err := blockWebsites([]string{"www.instagram.com"})
-		if err != nil {
-			fmt.Printf("Failed to %s websites: %v\n", action, err)
-		}
+	websitesToBlock, err := readWebsitesFromConfig()
+	if err != nil {
+		fmt.Println("Failed to read config file: %v\n", err)
+		return
 	}
 
 }
