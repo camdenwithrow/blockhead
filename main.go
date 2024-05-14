@@ -45,7 +45,7 @@ func readWebsitesFromConfig() ([]string, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading config file: %v", err)
 	}
 	return websites, nil
 }
@@ -97,6 +97,10 @@ func blockWebsites(websitesToBlock []string) error {
 	return nil
 }
 
+func unblockWebsites(websitesToUnblock []string) error {
+	return nil
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: blockhead <block|unblock|edit>")
@@ -115,8 +119,23 @@ func main() {
 
 	websitesToBlock, err := readWebsitesFromConfig()
 	if err != nil {
-		fmt.Println("Failed to read config file: %v\n", err)
+		fmt.Printf("Failed to read config file: %v\n", err)
 		return
+	}
+
+	switch action {
+	case "block":
+		err = blockWebsites(websitesToBlock)
+	case "unblock":
+		err = unblockWebsites(websitesToBlock)
+	default:
+		fmt.Println("Unknown command: ", action)
+		return
+	}
+	if err != nil {
+		fmt.Printf("Failed to %s websites: %v\n", action, err)
+	} else {
+		fmt.Printf("Websites %sed successfully.\n", action)
 	}
 
 }
