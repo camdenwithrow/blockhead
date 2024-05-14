@@ -81,6 +81,18 @@ func editConfigFile() error {
 	return cmd.Run()
 }
 
+func runAsAdmin(args []string) error {
+    cmdPath, err := os.Executable()
+    if err != nil {
+        return fmt.Errorf("failed to get executable path: %v", err)
+    }
+
+    cmd := fmt.Sprintf(`"%s" %s`, cmdPath, strings.Join(args, " "))
+    osascript := fmt.Sprintf(`do shell script "%s" with administrator privileges`, cmd)
+    _, err = exec.Command("osascript", "-e", osascript).Output()
+    return err
+}
+
 func blockWebsites(websitesToBlock []string) error {
 	file, err := os.OpenFile(hostsFilePath, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
@@ -123,19 +135,26 @@ func main() {
 		return
 	}
 
-	switch action {
-	case "block":
-		err = blockWebsites(websitesToBlock)
-	case "unblock":
-		err = unblockWebsites(websitesToBlock)
-	default:
-		fmt.Println("Unknown command: ", action)
-		return
-	}
-	if err != nil {
-		fmt.Printf("Failed to %s websites: %v\n", action, err)
+	if len(os.Args) > 2 && os.Args[2] == "elevated" {
+		switch action {
+		case "block":
+			err = blockWebsites(websitesToBlock)
+		case "unblock":
+			err = unblockWebsites(websitesToBlock)
+		default:
+			fmt.Println("Unknown command: ", action)
+			return
+		}
+		if err != nil {
+			fmt.Printf("Failed to %s websites: %v\n", action, err)
+		} else {
+			fmt.Printf("Websites %sed successfully.\n", action)
+		}
 	} else {
-		fmt.Printf("Websites %sed successfully.\n", action)
+		err := runAsAdmin(append([]string{action}, "elevated"))
+		if err != nil {
+			fmt.Printf("Failed to run as admin: %v\n", err)
+		}
 	}
 
 }
